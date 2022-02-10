@@ -1,0 +1,55 @@
+This homework was a doozy, began working last week and only just finished. I ended
+up making making make_parser and make_matcher seperately, where both had pretty 
+similar code but frankly I couldn't wrap my mind quite around the whole 
+matcher/acceptor ecosystem and so I decided to just implement what I was familiar
+ with without breaking any rules.
+
+First of all I had to adapt the filter_blind_alley code from last homework to make
+sure that during my matching traversals I wouldn't get stuck in any blind alleys;
+pretty much the motivation written HW1. To do this I computed the fixed point of 
+the "dictionary" of nonterminal characters that can be reached from the start point
+of a grammar, then applying the filter_blind_alley logic from homework 1 to mark
+all nonterminals as terminatable or nonterminatable, then clean the production function
+by filtering out any alternatives that contain a nonterminatable nonterminal.
+
+Then to do the make_matcher, I basically repeatedly apply the first possible rule 
+to the leftmost nonterminal in my current string (To get it started, a string 
+just containing the head of the grammar) and I would backtrack whenever the list
+of terminals before the leftmost nonterminal didn't match the string that I was 
+trying to match. If I reached a fully terminal string that matched the terminals 
+of the search string, I'd pass it to the acceptor and finish should it pass 
+but keep going if it doesn't.
+
+To handle the make_parser, I took what is probably a very unorthodox approach;
+it worked pretty much the same as make_matcher with the accept empty suffix acceptor
+but it would not just output the suffix but instead would output the list of rules
+used to get to the end. I would only store the right hand side of the rules, because
+it was implied that the rule would be applied to the leftmost nonterminal character.
+For example, to get the string ["3";"+";"1"] from [N Expr], my search function would
+return [[N Term; N Binop; N Expr]; [N Num]; [T "3"]; [T "+"]; [N Term]; [N Num]; [T "1"]].
+You can see that starting from [N Expr] and applying each consecutive rule to the string
+would eventually yield [T"3";T"+";T"1"]. Then once I found the "path", I would create
+a tree and repeatedly add the rule to the left-most node that hadn't been added to.
+I would "treeify" a rule by turning terminal characters in the list into Leafs and
+nonterminals into Nodes with empty branch lists.
+
+Now admittedly the weaknesses that my program have are many but I feel this must be
+what you were referring to with expecting weaknesses. The most glaring issue is
+that it is possible to crash out the program via stack overflow simply by changing
+terms that reference themselves to move to the start of said rule. For example,
+just by changing the rule Expr -> [Term; Binop; Expr] to Expr -> [Expr; Binop; Term],
+which theoretically should have no change on the output of the grammar as Expr turns
+turns into Term eventually anyway in order to terminate, continuing to choose to apply
+rules to the leftmost nonterminal will lead to the endless recursion of:
+Expr -> Expr; Binop; Term -> Expr; Binop; Term; Binop; Term -> etc. and since we never
+begin making terminal characters that would cause me to backtrack, the program spins
+out. This in fact was a massive internal conflict for me as I tried to design my
+code; I could put some kind of limit on the string length, perhaps if the string I'm
+testing is longer than the string I'm matching I should backtrack. But then for grammars
+where non-terminal characters can go to no characters, as referenced in the specs,
+this approach would break. In my make_parser_test, the string has to become of length
+5 before Num self-destructs and brings the string length back down to 4, and has to do
+that twice on the path to the final solution. Either approach would be flawed in one way
+or another. I chose to implement the version where it can spin out forever because 
+it can be fixed with better grammar definition, whereas the string length one can make some
+grammars not work at all regardless of redefinition.

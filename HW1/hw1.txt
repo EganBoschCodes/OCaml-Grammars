@@ -1,0 +1,9 @@
+My first idea was build the dictionary with all the rules; if no fixed point was being reached, iterate over all rule and re-run the fixed
+point function for all rules except the one being iterated over, recursively down and down. This approach has many problems; for one,
+it required knowing whether or not the dictionary would ever halt, which required me to stall out my computer to even check.
+
+Eventually I came across the solution; gather all non-terminal characters into a "dictionary", storing their value and whether they
+terminate (false initially for all). Iterate over all the rules; any rule that creates an output string only containing terminal characters
+or nonterminals marked as terminating in my dictionary then gets marked as terminating in the dictionary. Continue iterating until you reach
+a fixed point. Now, any characters still marked as non-terminating in the dictionary never terminate. Remove all rules containing references
+to them, and you have your solution.
